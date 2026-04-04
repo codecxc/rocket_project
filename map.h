@@ -1,7 +1,7 @@
 #ifndef MAP_H
 #define MAP_H
 #include <vector>
-
+#include "DefenderRocket.h"
 struct Corner {
         float x=0.0f,y=0.0f,z=0.0f;
 	Corner(float x, float y,float z);
@@ -25,6 +25,7 @@ class Cell {
 		std::vector<Corner*> getCorners() const;
 		DefenderRocket* getDefenderRocket() const;
 		Corner* getCenter() const;
+		~Cell();
 };
 
 class Map {

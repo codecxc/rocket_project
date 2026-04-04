@@ -2,7 +2,6 @@
 
 Corner::Corner(float x, float y, float z):x(x),y(y),z(z) {}
 Corner::Corner():x(0.0f),y(0.0f),z(0.0f) {}
-
 float Corner::getX() const {
 	return x;
 }
@@ -27,7 +26,13 @@ Cell::Cell(Corner* c1,Corner* c2,Corner* c3,Corner* c4,DefenderRocket* r=nullptr
 	else this->is_have_defender_rocket=false;
 }
 Cell::Cell():is_have_defender_rocket(false),r(nullptr),c1(nullptr),c2(nullptr),c3(nullptr),c4(nullptr) {}
-
+Cell::~Cell() {
+	delete r;
+	delete c1;
+	delete c2;
+	delete c3;
+	delete c4;
+}
 std::vector<Corner*> Cell::getCorners() const {
 	std::vector<Corners*> v;
 	v.push_back(c1);
@@ -49,4 +54,11 @@ Map::Map(Corner* c_map1,Corner* c_map2,Corner* c_map3,Corner* c_map4, std::vecto
 Corner* Map::getCornerNumber(int num) const {
 	return map[num];
 
+}
+Map::~Map() {
+	delete c_map2;
+	delete c_map1;
+	delete c_map3;
+	delete c_map4;
+	for(Cell* s:map) {delete s;}
 }
