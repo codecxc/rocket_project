@@ -1,7 +1,10 @@
 #ifndef DEFENDERROCKET_H
 #define DEFENDERROCKET_H
-#include "Corner.h"
+
 #include "Parametrs.h"
+
+class Corner;
+class Cell;
 
 class DefenderRocket {
 	protected:
@@ -13,7 +16,7 @@ class DefenderRocket {
 		Cell* start_cell;
 		Parametrs* p;
 	public:
-		DefenderRocket(double start_massa,double maximal_speed,float start_fuel, Cell* start_cell,float fuel_to_mass);
+		DefenderRocket(double start_massa,double maximal_speed,float start_fuel, Cell* start_cell,float fuel_to_mass,Parametrs* p);
 		~DefenderRocket();
 		double getStartMassa() const;
 		float getStartFuel() const;
