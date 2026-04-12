@@ -2,11 +2,10 @@
 #include "map.h"
 
 
-DefenderRocket::DefenderRocket(double start_massa,double maximal_speed,float start_fuel, Cell* start_cell,float fuel_to_mass,Parametrs* p):p(p),start_massa(start_massa),maximal_speed(maximal_speed),start_fuel(start_fuel),start_cell(start_cell),fuel_to_mass(fuel_to_mass) {
-	if(s!=nullptr) {
+DefenderRocket::DefenderRocket(double start_massa,double maximal_speed,float start_fuel, Cell* start_cell,float fuel_to_mass,Parametrs* p):p(p),start_massa(start_massa),maximal_speed(maximal_speed),start_fuel(start_fuel),start_cell(start_cell),fuel_to_mass(fuel_to_mass),s(nullptr) {
+	if(start_cell!=nullptr) {
 		s=start_cell->getCenter();
 	}
-	else {s=nullptr;}
 }
 DefenderRocket::~DefenderRocket() {
 	// delete s;

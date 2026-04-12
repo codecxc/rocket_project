@@ -10,7 +10,7 @@ class DefenderRocket {
 	protected:
 		Corner* s;
 		double start_massa;
-        float fuel_to_mass; // m_fuel/massa
+        	float fuel_to_mass; // m_fuel/massa
 		float start_fuel; // %
 		double maximal_speed;
 		Cell* start_cell;
@@ -20,7 +20,7 @@ class DefenderRocket {
 		~DefenderRocket();
 		double getStartMassa() const;
 		float getStartFuel() const;
-        float getFuelToMass() const;
+        	float getFuelToMass() const;
 		double getMaximalSpeed() const;
 		Cell* getStartCell() const;
 		Parametrs* getP() const;
