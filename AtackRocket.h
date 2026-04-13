@@ -11,6 +11,9 @@ class AtackRocket {
 		float* xyz;
 		float* velocity;
 		float* target_xyz;
+		bool is_active;
+		bool is_destroyed;
+		double time_alive;
 	public:
 		AtackRocket();
 		AtackRocket(double mass, double max_height, double start_speed,float start_x, float start_y, float start_z,float target_x, float target_y, float target_z);
@@ -51,6 +54,13 @@ class AtackRocket {
     		void setActive(bool active);
     		void setDestroyed(bool destroyed);
     		void setTimeAlive(double time);
+
+
+		void launch();
+		void destroy();
+		double getDistanceToTarget() const;
+		void update(float deltaTime);
+		void calculateTrajectory();
 };
 
 #endif

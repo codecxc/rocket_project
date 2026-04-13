@@ -1,6 +1,7 @@
 #include "AtackRocket.h"
+#include <cmath>
 
-AtackRocket::AtackRocket(double mass,double max_height,double start_speed,float start_x, float start_y, float start_zfloat target_x, float target_y, float target_z):mass(mass),max_height(max_height), cur_height(start_y),start_speed(start_speed), cur_angle(45.0f),is_active(false), is_destroyed(false), time_alive(0.0) {
+AtackRocket::AtackRocket(double mass,double max_height,double start_speed,float start_x, float start_y, float start_z,float target_x, float target_y, float target_z):mass(mass),max_height(max_height), cur_height(start_y),start_speed(start_speed), cur_angle(45.0f),is_active(false), is_destroyed(false), time_alive(0.0) {
 	xyz=new float[3];
 	xyz[0]=start_x;
 	xyz[1]=start_y;
@@ -159,4 +160,65 @@ void AtackRocket::setDestroyed(bool destroyed) {
 
 void AtackRocket::setTimeAlive(double time) {
     	this->time_alive=time;
+}
+
+void AtackRocket::calculateTrajectory() {
+	float dx=target_xyz[0]-xyz[0];
+	float dy=target_xyz[1]-xyz[1];
+	float dz=target_xyz[2]-xyz[2];
+
+	// все по траектории под 45 градусов см. конструктор
+	float angle_rad=cur_angle*M_PI/180.0f;
+	float horizontal_dist=std::sqrt(dx*dx+dz*dz);
+
+	float vx=(dx/horizontal_dist)*start_speed*std::cos(angle_rad);
+	float vy=start_speed*std::sin(angle_rad);
+	float vz=(dz/horizontal_dist)*start_speed*std::cos(angle_rad);
+	velocity[0]=vx;
+	velocity[1]=vy;
+	velocity[2]=vz;
+}
+
+
+
+double AtackRocket::getDistanceToTarget() const {
+	return std::sqrt(std::pow(target_xyz[0]-xyz[0],2)+std::pow(target_xyz[1]-xyz[1],2)+std::pow(target_xyz[2]-xyz[2],2));
+
+}
+
+
+void AtackRocket::launch() {
+	is_active=true;
+	is_destroyed=false;
+	time_alive=0.0;
+	calculateTrajectory();
+}
+
+void AtackRocket::destroy() {
+	is_destroyed=true;
+	is_active=false;
+	velocity[0]=0.0f;
+	velocity[1]=0.0f;
+	velocity[2]=0.0f;
+
+}
+
+void AtackRocket::update(float deltaTime) {
+	const float G=9.81f;
+	xyz[0]+=velocity[0]*deltaTime;
+    	xyz[1]+=velocity[1]*deltaTime;
+    	xyz[2]+=velocity[2]*deltaTime;
+
+
+	velocity[1]-=G*deltaTime;
+	cur_height=xyz[1];
+
+	float horizontal_speed=std::sqrt(std::pow(velocity[0],2)+std::pow(velocity[2],2));
+	cur_angle=std::atan2(velocity[1],horizontal_speed)*180.0f/M_PI;
+	time_alive+=deltaTime;
+
+
+	if(xyz[1]<=0.0f) {xyz[1]=0.0f;destroy();}
+	if(xyz[1]>max_height) {xyz[1]=max_height;}
+	if (getDistanceToTarget()<0.1) {destroy();}
 }
