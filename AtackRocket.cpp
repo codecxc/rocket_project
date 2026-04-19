@@ -183,7 +183,7 @@ void AtackRocket::setTimeAlive(double time) {
 }
 
 void AtackRocket::setMassFuel(double fuel_mass) {
-	this->mass_fuel=mass_fuel;
+	this->mass_fuel=fuel_mass;
 }
 
 void AtackRocket::setFuelRashod(double fuel_rashod) {
