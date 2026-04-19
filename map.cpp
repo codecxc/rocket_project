@@ -46,8 +46,11 @@ DefenderRocket* Cell::getDefenderRocket() const {
 }
 
 Corner* Cell::getCenter() const {
+	if(c1!=nullptr and c2!=nullptr and c3!=nullptr and c4!=nullptr) {
 	Corner* c=new Corner((c1->x+c2->x+c3->x+c4->x)/4.0,(c1->y+c2->y+c3->y+c4->y)/4.0,(c1->z+c2->z+c3->z+c4->z)/4.0);
 	return c;
+	}
+	else return new Corner(0.0f, 0.0f, 0.0f);
 }
 
 Map::Map(Corner* c_map1,Corner* c_map2,Corner* c_map3,Corner* c_map4, std::vector<Cell*> map):c_map1(c_map1),c_map2(c_map2),c_map3(c_map3),c_map4(c_map4),map(map) {}

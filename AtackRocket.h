@@ -4,6 +4,7 @@
 class AtackRocket {
 	protected:
 		double mass;
+		
 		double max_height;
 		double cur_height;
 		double start_speed;
@@ -14,11 +15,34 @@ class AtackRocket {
 		bool is_active;
 		bool is_destroyed;
 		double time_alive;
+		
+		double max_time_alive;
+		double mass_fuel0;
+		double mass_fuel;
+		double fuel_rashod;
+		double f; // сила
+		float* f_direction;
+
+		float s;
+		float drag;
 	public:
 		AtackRocket();
-		AtackRocket(double mass, double max_height, double start_speed,float start_x, float start_y, float start_z,float target_x, float target_y, float target_z);
+		AtackRocket(double mass, double max_height, double start_speed,float start_x, float start_y, float start_z,float target_x, float target_y, float target_z,float cur_angle, double max_time_alive, double mass_fuel0,double fuel_rashod, double f,float s, float drag);
 		~AtackRocket();
-		double getMass() const;
+		double getMass() const; // масса корпуса
+		double getMassFuel() const; // масса топлива
+		void setMassFuel(double fuel_mass);
+		double getFuelRashod() const;
+		double getF() const;
+		float* getFDirection() const;
+		void setFuelRashod(double fuel_rashod);
+		void setF(double f);
+		float getS() const;
+		float getDrag() const;
+		void setS(float s);
+		void setDrag(float drag);
+		void setFDirection(float* f_direction);
+		double getMaxTimeAlive() const; //
     		double getMaxHeight() const;
     		double getCurHeight() const;
     		double getStartSpeed() const;
@@ -26,9 +50,9 @@ class AtackRocket {
     		float getX() const;
     		float getY() const;
     		float getZ() const;
-    		float getVelocityX() const;
-    		float getVelocityY() const;
-    		float getVelocityZ() const;
+    		float getVX() const;
+    		float getVY() const;
+    		float getVZ() const;
     		double getCurrentSpeed() const;
     		float getTargetX() const;
     		float getTargetY() const;
@@ -47,9 +71,9 @@ class AtackRocket {
     		void setX(float x);
     		void setY(float y);
     		void setZ(float z);
-    		void setVelocityX(float vx);
-    		void setVelocityY(float vy);
-    		void setVelocityZ(float vz);
+    		void setVX(float vx);
+    		void setVY(float vy);
+    		void setVZ(float vz);
     		void setTarget(float x, float y, float z);
     		void setActive(bool active);
     		void setDestroyed(bool destroyed);
@@ -61,6 +85,7 @@ class AtackRocket {
 		double getDistanceToTarget() const;
 		void update(float deltaTime);
 		void calculateTrajectory();
+
 };
 
 #endif
