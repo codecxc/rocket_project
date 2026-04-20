@@ -4,9 +4,16 @@
 #include <algorithm>
 #include "AtackRocket.h"
 #include "Vec.cpp"
-DefenderRocket::DefenderRocket(double start_mass,double maximal_speed,float start_fuel, Cell* start_cell,float fuel_to_mass,Parametrs* p,float f):p(p),start_mass(start_mass),maximal_speed(maximal_speed),start_fuel(start_fuel),start_cell(start_cell),fuel_to_mass(fuel_to_mass),s(nullptr),f(f),is_active(false),is_destroyed(false),time_alive(0.0),current_fuel(0.0f),current_mass(start_mass) {
+DefenderRocket::DefenderRocket(double start_mass,double maximal_speed,float start_fuel, Cell* start_cell,Parametrs* p,float f):p(p),start_mass(start_mass),maximal_speed(maximal_speed),start_fuel(start_fuel),start_cell(start_cell),s(nullptr),f(f),is_active(false),is_destroyed(false),time_alive(0.0),current_fuel(0.0f),current_mass(start_mass) {
 	if(start_cell!=nullptr) {
 		s=start_cell->getCenter();
+		std::vector<float>p1=p->getParametrs();
+		p1[6]=s->getX();
+		p1[7]=s->getY();
+		p1[8]=s->getZ();
+		p1[5]=current_fuel;
+		p1[3]=100;
+		p->setParametrs(p1);
 	}
 }
 DefenderRocket::~DefenderRocket() {
@@ -26,9 +33,9 @@ double DefenderRocket::getMaximalSpeed() const {
 
 }
 
-float DefenderRocket::getFuelToMass() const {
-        return fuel_to_mass;
-}
+//float DefenderRocket::getFuelToMass() const {
+//        return fuel_to_mass;
+//}
 
 Cell* DefenderRocket::getStartCell() const {
 	return start_cell;
@@ -96,29 +103,102 @@ double DefenderRocket::getTimeAlive() const {
     	return time_alive;
 }
 
-void DefenderRocket::launch() {
+
+
+
+
+void DefenderRocket::calculateV(AtackRocket* target, float dt) {
+	const int MAX_ITER=20;
+	const float TOLERANCE=1.0f;
+
+	float R_x=getX();
+	float R_y=getY();
+	float R_z=getZ();
+
+	float T_x=target->getX();
+	float T_y=target->getY();
+	float T_z=target->getZ();
+
+	float Vt_x=target->getVX();
+	float Vt_y=target->getVY();
+	float Vt_z=target->getVZ();
+
+	float Vd=maximal_speed;
+
+	float t_guess=getDistanceToTarget(target)/Vd;
+
+	for(int iter=0;iter<MAX_ITER;iter++){
+		float P_x=T_x+Vt_x*t_guess;
+		float P_y=T_y+Vt_y*t_guess;
+		float P_z=T_z+Vt_z*t_guess;
+
+		float dx=P_x-R_x;
+		float dy=P_y-R_y;
+		float dz=P_z-R_z;
+		float dist=std::sqrt(dx*dx+dy*dy+dz*dz);
+
+		float t_new=dist/Vd;
+
+		if(std::fabs(t_new-t_guess)<TOLERANCE/Vd){
+			t_guess=t_new;
+			break;
+		}
+		t_guess=t_new;
+	}
+
+	float P_x=T_x+Vt_x*t_guess;
+	float P_y=T_y+Vt_y*t_guess;
+	float P_z=T_z+Vt_z*t_guess;
+
+	float dx=P_x-R_x;
+	float dy=P_y-R_y;
+	float dz=P_z-R_z;
+	float dist=std::sqrt(dx*dx+dy*dy+dz*dz);
+	float dir_x=dx/dist;
+	float dir_y=dy/dist;
+	float dir_z=dz/dist;
+
+	std::vector<float>p1=p->getParametrs();
+	p1[1]=dir_x*Vd;
+	p1[2]=dir_y*Vd;
+	p1[3]=dir_z*Vd;
+	p1[4]=Vd;
+	p->setParametrs(p1);
+}
+
+
+
+
+
+
+
+
+
+
+
+void DefenderRocket::launch(AtackRocket* target) {
 	is_active=true;
 	is_destroyed=false;
 	time_alive=0.0;
 	current_fuel=start_fuel;
-	current_mass=start_mass;
-	
-	std::vector<float>p1=p->getParametrs();
-	if(s!=nullptr) {
-	p1[6]=s->getX();
-	p1[7]=s->getY();
-	p1[8]=s->getZ();
-	} else {
-	p1[6]=0.0f;
-        p1[7]=0.0f;
-        p1[8]=0.0f;
-	}
-	p1[1]=0.0f;
-	p1[2]=10.0f;
-	p1[3]=0.0f;
-	p1[4]=10.0f;
-	p1[5]=current_fuel;
-	p->setParametrs(p1);
+	current_mass=start_mass+current_fuel;
+	// std::vector<float>p1=p->getParametrs();
+	// if(s!=nullptr) {
+	// p1[6]=s->getX();
+	// p1[7]=s->getY();
+	// p1[8]=s->getZ();
+	// } else {
+	// p1[6]=0.0f;
+    //     p1[7]=0.0f;
+    //     p1[8]=0.0f;
+	// }
+	// p1[1]=0.0f;
+	// p1[2]=0.0f;
+	// p1[3]=start_;
+	// p1[4]=0.0f;
+	// p1[5]=current_fuel;
+	// p->setParametrs(p1);
+	calculateV(target, 0.0f);
 }
 
 void DefenderRocket::destroy() {
@@ -133,27 +213,30 @@ double DefenderRocket::getDistanceToTarget(AtackRocket* target) const {
 
 }
 
-const float N=4.0f;
+const float N=6.0f;
 const float G=9.81f;
 
 void DefenderRocket::calculateTrajectory(AtackRocket* target,float dt) {
 	if(target->isActive()==false or current_fuel<=0.0f) return;
 	
 	std::vector<float>p1=p->getParametrs();
-	Vec R(target->getX()-getX(),target->getY()-getY(),target->getZ()-getZ());
-
+	Vec R(target->getX()-getX(),target->getY()-getY(),target->getZ()-getZ()); // вектор атакующей
+//	Vec X(1,0,0);Vec Y(0,1,0);Vec Z(0,0,1);
+//	p1[1]=p1[4]*R.scalar(X);
+//	p1[2]=p1[4]*R.scalar(Y);
+//	p1[3]=p1[4]*R.scalar(Z);
 	float r_len=R.getLength();
 	if(r_len<0.5f) return;
-	Vec R_n=R.normalized();
+	Vec R_n=R.normalized(); // единичный вектор А
 	Vec V_target(target->getVX(),target->getVY(),target->getVZ());
     	Vec V_defender(p1[1],p1[2],p1[3]);
 	Vec V_rel=V_target-V_defender;
 
 	float Vc=-R_n.scalar(V_rel);
 	Vec omega=R.cross(V_rel)/(r_len*r_len);
-	Vec a=omega.cross(R_n)*(N*Vc);
-	Vec a_g(0,G,0);
-	Vec a_total=a+a_g;
+	Vec a=omega.cross(V_rel)*(N);
+	Vec a_g(0,0,-G);
+	Vec a_total=a-a_g;
 	Vec f_direction=a_total.normalized();
 	
 	float a1=f/current_mass;
@@ -165,8 +248,8 @@ void DefenderRocket::calculateTrajectory(AtackRocket* target,float dt) {
 	p1[1]=new_velocity.getX();
 	p1[2]=new_velocity.getY();
 	p1[3]=new_velocity.getZ();
-	float horizontal_speed=std::sqrt(p1[1]*p1[1]+p1[3]*p1[3]);
-    	p1[0]=std::atan2(p1[2],horizontal_speed)*180.0f/M_PI;
+	float horizontal_speed=std::sqrt(p1[1]*p1[1]+p1[2]*p1[2]);
+    	p1[0]=std::atan2(p1[3],horizontal_speed)*180.0f/M_PI;
     	p->setParametrs(p1);
 
 
@@ -195,9 +278,8 @@ void DefenderRocket::updateFuel(float deltaTime, float a) {
 
 
 
-	float m_structure=start_mass*(1.0f-fuel_to_mass);
-    	float m_fuel_current=start_mass*fuel_to_mass*(current_fuel/start_fuel);
-    	current_mass=m_structure+m_fuel_current;
+    	
+    	current_mass=start_mass+current_fuel;
 }
 
 const float RHO_0 = 1.225f;
@@ -211,7 +293,7 @@ void DefenderRocket::update(float deltaTime, AtackRocket* target) {
         	calculateTrajectory(target,deltaTime);
         	p1=p->getParametrs();
     	}
-	float h=p1[7];
+	float h=p1[8];
 	float rho=RHO_0*std::exp(-h/H);
 	float speed=p1[4];
 	float drag_f=0.5f*rho*speed*speed*DRAG*S;
@@ -224,19 +306,28 @@ void DefenderRocket::update(float deltaTime, AtackRocket* target) {
         p1[2]-=v_norm_y * drag_a*deltaTime;
         p1[3]-=v_norm_z * drag_a*deltaTime;
 	}
-	p1[2]-=G*deltaTime;
+	if(current_fuel<=0.0f) {
+		p1[3]-=G*deltaTime;
+	}
 	p1[4]=std::sqrt(p1[1]*p1[1]+p1[2]*p1[2]+p1[3]*p1[3]);
 	p1[6]+=p1[1]*deltaTime;
 	p1[7]+=p1[2]*deltaTime;
 	p1[8]+=p1[3]*deltaTime;
-	updateFuel(deltaTime,0.0f);
+	
+	if(p1[8]<0.0f) {p1[8]=0.0f; destroy();return;}
+	if(current_fuel>0) updateFuel(deltaTime,0.0f);
     	p1[5]=current_fuel;
 	p->setParametrs(p1);
     	time_alive+=deltaTime;
 
-	if (target && getDistanceToTarget(target)<3.0f) {
+	if (getDistanceToTarget(target)<70.0f) {
         	destroy();
         	target->destroy();
         	return;
     	}
 }
+
+
+
+
+

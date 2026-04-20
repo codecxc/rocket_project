@@ -46,9 +46,9 @@ Map* createRandomMap(int width,int height,float size,int numCells,float startX,f
 		Cell* cell=new Cell(c1,c2,c3,c4);
 		
 		Corner* center=cell->getCenter();
-		Parametrs* p=new Parametrs(45.0f,0.0f,0.0f,0.0f,500.0f,100.0f,center->getX(),center->getY(),center->getZ());
+		Parametrs* p=new Parametrs(45.0f,0.0f,0.0f,0.0f,0.0f,4000.0f,center->getX(),center->getY(),center->getZ());
 		delete center;
-		DefenderRocket* def=new DefenderRocket(150,700,100,cell,0.6f,p,8000.0f);
+		DefenderRocket* def=new DefenderRocket(100,1000,5000,cell,p,15000.0f);
 		cell=new Cell(c1,c2,c3,c4,def);
 		cells.push_back(cell);
 	}
@@ -95,18 +95,19 @@ AtackRocket* createAtack(Map* map,float mapStartX,float mapStartY,float mapWidth
 		}
 		
 	}
-	int targetCell=rng.getFloat(0,numCells);
+//	int targetCell=rng.getFloat(0,numCells);
+	int targetCell=8;
 	Corner* targetCenter=map->getCellNumber(targetCell)->getCenter();
-	AtackRocket* attack=new AtackRocket(200,1000,100,x,y,baseZ,targetCenter->getX(), targetCenter->getY(), targetCenter->getZ(),45.0f,200,80,0.5,3000,0.5f,0.3f);
+	AtackRocket* attack=new AtackRocket(100,1500,250,x,y,baseZ,targetCenter->getX(), targetCenter->getY(), targetCenter->getZ(),45.0f,30,500,2.5,6000,0.05f,0.3f);
 	delete targetCenter;
 	return attack;
 }
 
 
 int main() {
-	const int MAP_WIDTH=100;
-	const int MAP_HEIGHT=100;
-	const float CELL_SIZE=5.0f;
+	const int MAP_WIDTH=5000;
+	const int MAP_HEIGHT=5000;
+	const float CELL_SIZE=50.0f;
 	const int NUM_CELLS=10;
 	
 	RandomGenerator rng;
@@ -121,16 +122,17 @@ int main() {
 	std::cout<<"Атакующая ракета: "<< attacker->getX()<< " "<<attacker->getY()<<" "<<attacker->getZ()<<std::endl;
 	std::cout << "Цель: "<<attacker->getTargetX()<<" "<<attacker->getTargetY()<<" "<<attacker->getTargetZ()<<std::endl;
 	
-	std::ofstream trajectoryFile("trajectories.csv");
+	std::ofstream trajectoryFile("data.txt");
 	trajectoryFile << "time,type,id,x,y,z\n";
 	trajectoryFile << std::fixed << std::setprecision(6);
 	float time=0.0f;
 	
-	float dt=0.1f;
+	float dt=0.01f;
 	attacker->launch();
-	for(int i=0;i<NUM_CELLS;++i) {
-		Map->getCellNumber(i)->getDefenderRocket()->launch();
-	}
+//	for(int i=0;i<NUM_CELLS;++i) {
+//		Map->getCellNumber(i)->getDefenderRocket()->launch();
+//	}
+	Map->getCellNumber(8)->getDefenderRocket()->launch(attacker);
 	while(attacker->isActive()) {
 
 
@@ -143,17 +145,19 @@ int main() {
 		attacker->update(dt);
 		for(int i=0;i<NUM_CELLS;++i) {
 			DefenderRocket* defender=Map->getCellNumber(i)->getDefenderRocket();
+			if(defender->isActive()) {
 			defender->update(dt, attacker);
 			
 			trajectoryFile << time << ",defender," << i << ","
                        << defender->getX() << "," 
                        << defender->getY() << "," 
                        << defender->getZ() << "\n";
-
+			}
 		}
 		time+=dt;
 
 	}
+	std::cout<<attacker->isActive();
 
 	trajectoryFile.close();
 	delete attacker;

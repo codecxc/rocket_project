@@ -11,8 +11,8 @@ class DefenderRocket {
 	protected:
 		Corner* s;
 		double start_mass;
-        	float fuel_to_mass; // m_fuel/massa
-		float start_fuel; // %
+//       	float fuel_to_mass; // m_fuel/massa
+		float start_fuel;
 		double maximal_speed;
 		Cell* start_cell;
 		Parametrs* p;
@@ -24,11 +24,11 @@ class DefenderRocket {
 		float current_fuel;
 		double current_mass;
 	public:
-		DefenderRocket(double start_massa,double maximal_speed,float start_fuel, Cell* start_cell,float fuel_to_mass,Parametrs* p,float f);
+		DefenderRocket(double start_massa,double maximal_speed,float start_fuel, Cell* start_cell,Parametrs* p,float f);
 		~DefenderRocket();
 		double getStartMass() const;
 		float getStartFuel() const;
-        	float getFuelToMass() const;
+//        	float getFuelToMass() const;
 		double getMaximalSpeed() const;
 		Cell* getStartCell() const;
 		Parametrs* getP() const;
@@ -47,12 +47,17 @@ class DefenderRocket {
     		float getFuel() const;
 		void updateFuel(float deltaTime,float a);
     		double getCurrentMass() const;
-		void launch();
+		void launch(AtackRocket* target);
 
 		void destroy();
 		void update(float deltaTime,AtackRocket* target);
 		void calculateTrajectory(AtackRocket* target,float dt);
 		double getDistanceToTarget(AtackRocket* target) const;
+
+
+		void calculateV(AtackRocket* target, float dt);
+
+
 };
 
 #endif
