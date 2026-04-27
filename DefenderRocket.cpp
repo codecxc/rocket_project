@@ -1,5 +1,6 @@
 #include "DefenderRocket.h"
 #include "map.h"
+#define _USE_MATH_DEFINES
 #include <cmath>
 #include <algorithm>
 #include "AtackRocket.h"

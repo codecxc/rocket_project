@@ -1,47 +1,57 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
 
-df = pd.read_csv('data.txt', sep=',', skipinitialspace=True)
+df = pd.read_csv('attackrockets.txt', sep=',', skipinitialspace=True)
 
-attacker = df[df['type'] == 'attacker']
-defender = df[df['type'] == 'defender']
+attackers = df[df['type'] == 'attacker']
+defenders = df[df['type'] == 'defender']
 
 fig = plt.figure(figsize=(14, 6))
 
 ax1 = fig.add_subplot(121, projection='3d')
-ax1.plot(attacker['x'], attacker['y'], attacker['z'], 'b-', label='Attacker', linewidth=2)
-ax1.plot(defender['x'], defender['y'], defender['z'], 'r-', label='Defender', linewidth=2)
-ax1.scatter(attacker['x'].iloc[0], attacker['y'].iloc[0], attacker['z'].iloc[0], color='blue', s=50, marker='o')
-ax1.scatter(defender['x'].iloc[0], defender['y'].iloc[0], defender['z'].iloc[0], color='red', s=50, marker='o')
-ax1.scatter(attacker['x'].iloc[-1], attacker['y'].iloc[-1], attacker['z'].iloc[-1], color='blue', s=50, marker='s')
-ax1.scatter(defender['x'].iloc[-1], defender['y'].iloc[-1], defender['z'].iloc[-1], color='red', s=50, marker='s')
+
+for atk_id, grp in attackers.groupby('id'):
+    ax1.plot(grp['x'], grp['y'], grp['z'], 'b-', linewidth=0.8, alpha=0.7)
+    ax1.scatter(grp['x'].iloc[0], grp['y'].iloc[0], grp['z'].iloc[0], 
+                color='blue', s=30, marker='o')
+    ax1.scatter(grp['x'].iloc[-1], grp['y'].iloc[-1], grp['z'].iloc[-1], 
+                color='blue', s=30, marker='s')
+
+for def_id, grp in defenders.groupby('id'):
+    ax1.plot(grp['x'], grp['y'], grp['z'], 'r-', linewidth=0.8, alpha=0.7)
+    ax1.scatter(grp['x'].iloc[0], grp['y'].iloc[0], grp['z'].iloc[0], 
+                color='red', s=30, marker='o')
+    ax1.scatter(grp['x'].iloc[-1], grp['y'].iloc[-1], grp['z'].iloc[-1], 
+                color='red', s=30, marker='s')
+
 ax1.set_xlabel('X')
 ax1.set_ylabel('Y')
 ax1.set_zlabel('Z')
-ax1.set_title('3D Trajectories')
-ax1.legend()
+ax1.set_title('3D Trajectories (all rockets)')
 
 ax2 = fig.add_subplot(122)
-times = np.unique(df['time'])
-distances = []
 
-for t in times:
-    att = attacker[attacker['time'] == t]
-    deff = defender[defender['time'] == t]
-    if len(att) > 0 and len(deff) > 0:
-        dist = np.sqrt((att['x'].values[0] - deff['x'].values[0])**2 + 
-                       (att['y'].values[0] - deff['y'].values[0])**2 +
-                       (att['z'].values[0] - deff['z'].values[0])**2)
-        distances.append(dist)
-    else:
-        distances.append(np.nan)
+if 0 in attackers['id'].values and 0 in defenders['id'].values:
+    atk0 = attackers[attackers['id'] == 0].set_index('time')
+    def0 = defenders[defenders['id'] == 0].set_index('time')
+    common_times = atk0.index.intersection(def0.index)
+    dist = np.sqrt((atk0.loc[common_times, 'x'].values - def0.loc[common_times, 'x'].values)**2 +
+                   (atk0.loc[common_times, 'y'].values - def0.loc[common_times, 'y'].values)**2 +
+                   (atk0.loc[common_times, 'z'].values - def0.loc[common_times, 'z'].values)**2)
+    ax2.plot(common_times, dist, 'g-', linewidth=2, marker='o', markersize=3)
+    ax2.set_title('Distance: Attacker 0 vs Defender 0')
+else:
+    times = sorted(df['time'].unique())
+    active_attackers = [len(attackers[(attackers['time'] == t) & (attackers['x'].notna())]) for t in times]
+    ax2.plot(times, active_attackers, 'b-', label='Active attackers')
+    active_defenders = [len(defenders[(defenders['time'] == t) & (defenders['x'].notna())]) for t in times]
+    ax2.plot(times, active_defenders, 'r-', label='Active defenders')
+    ax2.legend()
+    ax2.set_title('Active rocket counts')
 
-ax2.plot(times, distances, 'g-', linewidth=2, marker='o', markersize=3)
 ax2.set_xlabel('Time')
-ax2.set_ylabel('Distance')
-ax2.set_title('Distance vs Time')
+ax2.set_ylabel('Distance / Count')
 ax2.grid(True, alpha=0.3)
 
 plt.tight_layout()

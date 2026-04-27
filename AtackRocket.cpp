@@ -1,4 +1,7 @@
+#include <algorithm>
 #include "AtackRocket.h"
+#define _USE_MATH_DEFINES
+
 #include <cmath>
 #include "Vec.cpp"
 
@@ -257,68 +260,37 @@ const float RHO_0=1.225f;
 const float H=8500.0f;
 
 void AtackRocket::update(float deltaTime) {
-	if(is_active==false or is_destroyed==true) return;
-	const float G=9.81f;
-	double mass=getMass()+getMassFuel();
+    if (!is_active || is_destroyed)
+        return;
 
-	float F_x=0.0f;
-	float F_y=0.0f;
-	float F_z=0.0f;
+    const float G = 9.81f;
 
-	double v=getCurrentSpeed();
-	if(mass_fuel>0 and time_alive<max_time_alive) {
-		F_x=f*f_direction[0];
-		F_y=f*f_direction[1];
-		F_z=f*f_direction[2];
-		mass_fuel-=fuel_rashod*deltaTime;
-		if(mass_fuel<=0) mass_fuel=0;
+    velocity[2] -= G * deltaTime;
 
-	}
-	float FG_x=0.0f;
-	float FG_z=-mass*G;
-	float FG_y=0.0f;
+    xyz[0] += velocity[0] * deltaTime;
+    xyz[1] += velocity[1] * deltaTime;
+    xyz[2] += velocity[2] * deltaTime;
 
+    cur_height = xyz[2];
 
+    float horizontal_speed = std::sqrt(velocity[0] * velocity[0] + velocity[1] * velocity[1]);
+    cur_angle = std::atan2(velocity[2], horizontal_speed) * 180.0f / M_PI;
 
-	float rho=RHO_0*std::exp(-xyz[2]/H);
-	float FDrag_x=0.0f;
-	float FDrag_y=0.0f;
-	float FDrag_z=0.0f;
-	float Drag_f=0.5f*rho*v*v*drag*s;
-	if(v>0) {
-	float v_norm_x=velocity[0]/v;
-        float v_norm_y=velocity[1]/v;
-        float v_norm_z=velocity[2]/v;
-	FDrag_x=-Drag_f*v_norm_x;
-        FDrag_y=-Drag_f*v_norm_y;
-        FDrag_z=-Drag_f*v_norm_z;
-	}
-	float F_total_x=FDrag_x+FG_x+F_x;
-    	float F_total_y=FDrag_y+FG_y+F_y;
-    	float F_total_z=FDrag_z+FG_z+F_z;
-	
-	float ax=F_total_x/mass;
-    	float ay=F_total_y/mass;
-    	float az=F_total_z/mass;
-	
-	velocity[0]+=ax*deltaTime;
-    	velocity[1]+=ay*deltaTime;
-    	velocity[2]+=az*deltaTime;
+    time_alive += deltaTime;
 
-	xyz[0]+=velocity[0]*deltaTime;
-    	xyz[1]+=velocity[1]*deltaTime;
-    	xyz[2]+=velocity[2]*deltaTime;
+    if (xyz[2] <= 0.0f) {
+        xyz[2] = 0.0f;
+        destroy();
+        return;
+    }
 
-	cur_height=xyz[2];
-	float horizontal_speed=std::sqrt(velocity[0]*velocity[0]+velocity[1]*velocity[1]);
-    	cur_angle=std::atan2(velocity[2], horizontal_speed) *180.0f/M_PI;
-    	time_alive+=deltaTime;
-//	float horizontal_speed=std::sqrt(std::pow(velocity[0],2)+std::pow(velocity[2],2));
-//	cur_angle=std::atan2(velocity[1],horizontal_speed)*180.0f/M_PI;
-//	time_alive+=deltaTime;
+    if (xyz[2] > max_height) {
+        xyz[2] = max_height;
+        velocity[2] = std::min(velocity[2], 0.0f);
+    }
 
-
-	if(xyz[2]<=0.0f) {xyz[2]=0.0f;destroy();return;}
-	if(xyz[2]>max_height) {xyz[2]=max_height;velocity[2]=std::min(velocity[2],0.0f);}
-	if (getDistanceToTarget()<20.0f) {destroy();return;}
+    if (getDistanceToTarget() < 20.0f) {
+        destroy();
+        return;
+    }
 }
