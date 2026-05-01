@@ -16,10 +16,10 @@ const float KILL_RADIUS=120.0f;
 const float PN_N=1.0f;
 const float G=9.81f;
 const float S=0.05f;
+const float BRAKE_A=800.0f;
 
 
-
-DefenderRocket::DefenderRocket(double start_mass,double maximal_speed,float start_fuel, Cell* start_cell,Parametrs* p,float f):p(p),start_mass(start_mass),maximal_speed(maximal_speed),start_fuel(start_fuel),start_cell(start_cell),s(nullptr),f(f),is_active(false),is_destroyed(false),time_alive(0.0),current_fuel(0.0f),current_mass(start_mass) {
+DefenderRocket::DefenderRocket(double mass,float start_fuel, Cell* start_cell,Parametrs* p,float f):p(p),mass(mass),start_fuel(start_fuel),start_cell(start_cell),s(nullptr),f(f),is_active(false),is_destroyed(false),time_alive(0.0),current_fuel(0.0f) {
 	if(start_cell!=nullptr) {
 		s=start_cell->getCenter();
 		std::vector<float>p1=p->getParametrs();
@@ -27,7 +27,7 @@ DefenderRocket::DefenderRocket(double start_mass,double maximal_speed,float star
 		p1[7]=s->getY();
 		p1[8]=s->getZ();
 		p1[5]=current_fuel;
-		p1[3]=100;
+		// p1[3]=100;
 		p->setParametrs(p1);
 	}
 }
@@ -35,18 +35,18 @@ DefenderRocket::~DefenderRocket() {
 	// delete s;
 }
 
-double DefenderRocket::getStartMass() const {
-	return start_mass;
+double DefenderRocket::getMass() const {
+	return mass;
 }
 
 float DefenderRocket::getStartFuel() const {
 	return start_fuel;
 }
 
-double DefenderRocket::getMaximalSpeed() const {
-	return maximal_speed;
+// double DefenderRocket::getMaximalSpeed() const {
+// 	return maximal_speed;
 
-}
+// }
 
 //float DefenderRocket::getFuelToMass() const {
 //        return fuel_to_mass;
@@ -100,10 +100,6 @@ double DefenderRocket::getCurrentSpeed() const {
 
 float DefenderRocket::getFuel() const {
         return current_fuel;
-}
-
-double DefenderRocket::getCurrentMass() const {
-    	return current_mass;
 }
 
 bool DefenderRocket::isActive() const {
@@ -202,7 +198,7 @@ void DefenderRocket::launch(AtackRocket* target) {
     is_destroyed=false;
     time_alive=0.0;
     current_fuel=start_fuel;
-    current_mass=start_mass+current_fuel;
+    // current_mass=start_mass+current_fuel;
     calculateV(target, 0.0f);
 }
 
@@ -319,9 +315,10 @@ void DefenderRocket::calculateTrajectory(AtackRocket* target, float dt) {
     float dy=target->getY()-getY();
     float dz=target->getZ()-getZ();
     float dist=std::sqrt(dx*dx+dy*dy+dz*dz);
-    if(dist<1e-3f) return;
+    if(dist<1.0f) return;
 
-    float a=(f)/(current_mass);
+    float current_mass=mass+current_fuel;
+    float a=f/current_mass;
     float nx=dx/dist,ny=dy/dist,nz=dz/dist;
     std::vector<float> p1=p->getParametrs();
     p1[1]+=nx*a*dt;
@@ -345,13 +342,9 @@ void DefenderRocket::updateFuel(float deltaTime, float a) {
 //    	current_mass=start_mass*(1.0-fuel_to_mass*(1.0-current_fuel/100.0f));
 
 	float dm=f/(I*G);
-	float fuel_used=dm*deltaTime;
-	current_fuel-=fuel_used;
+	current_fuel-=dm*deltaTime;
 
 		if (current_fuel < 0.0f) current_fuel = 0.0f;
-
-    	
-    	current_mass=start_mass+current_fuel;
 }
 
 
@@ -448,7 +441,7 @@ void DefenderRocket::update(float deltaTime, AtackRocket* target) {
         this->destroy();target->destroy();return;
     }
 
-    if (current_fuel>0.0f) { // без гравитации хз насколько корректно
+    if (current_fuel>0.0f) { // без гравитации
         calculateTrajectory(target,deltaTime);
         updateFuel(deltaTime,0.0f);
     } else {
@@ -457,6 +450,7 @@ void DefenderRocket::update(float deltaTime, AtackRocket* target) {
         p1[4]=std::sqrt(p1[1]*p1[1]+p1[2]*p1[2]+p1[3]*p1[3]);
         p->setParametrs(p1);
     }
+    if(target->isActive()) applyBraking(target, deltaTime);
     std::vector<float> p1=p->getParametrs();
     p1[5]=current_fuel;
     p1[6]+=p1[1]*deltaTime;
@@ -471,4 +465,30 @@ void DefenderRocket::update(float deltaTime, AtackRocket* target) {
         destroy();
 		target->destroy();
     }
+}
+
+
+void DefenderRocket::applyBraking(AtackRocket* target, float dt) {
+    std::vector<float> p1=p->getParametrs();
+    float spd=p1[4];
+    if(spd<1.f) return;
+    float tx=target->getX()-p1[6],ty=target->getY()-p1[7],tz=target->getZ()-p1[8];
+    float tdist=std::sqrt(tx*tx+ty*ty+tz*tz);
+    if (tdist<1.0f) return;
+
+    float dot=(p1[1]/spd)*(tx/tdist)+(p1[2]/spd)*(ty/tdist)+(p1[3]/spd)*(tz/tdist);
+    if (dot >= 0.0f) return;
+    float n_spd = spd-BRAKE_A*dt;
+    if (n_spd<0.0f) n_spd=0.0f;
+    float scale;
+    if (spd>1e-3f) {
+        scale=n_spd/spd;
+    } else {
+        scale=0.0f;
+    }
+    p1[1]*=scale; 
+    p1[2]*=scale; 
+    p1[3]*=scale; 
+    p1[4]=n_spd;
+    p->setParametrs(p1);
 }

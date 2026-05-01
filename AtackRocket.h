@@ -5,9 +5,9 @@ class AtackRocket {
 	protected:
 		double mass;
 		
-		double max_height;
-		double cur_height;
-		double start_speed;
+		// double max_height;
+		// double cur_height;
+		// double start_speed;
 		float cur_angle;
 		float* xyz;
 		float* velocity;
@@ -16,18 +16,18 @@ class AtackRocket {
 		bool is_destroyed;
 		double time_alive;
 		
-		double max_time_alive;
+		// double max_time_alive;
 		double mass_fuel0;
 		double mass_fuel;
 		double fuel_rashod;
 		double f; // сила
 		float* f_direction;
 
-		float s;
-		float drag;
+		// float s;
+		// float drag;
 	public:
 		AtackRocket();
-		AtackRocket(double mass, double max_height, double start_speed,float start_x, float start_y, float start_z,float target_x, float target_y, float target_z,float cur_angle, double max_time_alive, double mass_fuel0,double fuel_rashod, double f,float s, float drag);
+		AtackRocket(double mass,float start_x, float start_y, float start_z,float target_x, float target_y, float target_z,float cur_angle,double mass_fuel0,double fuel_rashod, double f);
 		~AtackRocket();
 		double getMass() const; // масса корпуса
 		double getMassFuel() const; // масса топлива
@@ -37,15 +37,15 @@ class AtackRocket {
 		float* getFDirection() const;
 		void setFuelRashod(double fuel_rashod);
 		void setF(double f);
-		float getS() const;
-		float getDrag() const;
-		void setS(float s);
-		void setDrag(float drag);
+		// float getS() const;
+		// float getDrag() const;
+		// void setS(float s);
+		// void setDrag(float drag);
 		void setFDirection(float* f_direction);
-		double getMaxTimeAlive() const; //
-    		double getMaxHeight() const;
+		// double getMaxTimeAlive() const;
+    	// 	double getMaxHeight() const;
     		double getCurHeight() const;
-    		double getStartSpeed() const;
+    		// double getStartSpeed() const;
     		float getCurAngle() const;
     		float getX() const;
     		float getY() const;
@@ -64,9 +64,9 @@ class AtackRocket {
 		
 
 		void setMass(double mass);
-    		void setMaxHeight(double height);
+    		// void setMaxHeight(double height);
     		void setCurHeight(double height);
-    		void setStartSpeed(double speed);
+    		// void setStartSpeed(double speed);
     		void setCurAngle(float angle);
     		void setX(float x);
     		void setY(float y);

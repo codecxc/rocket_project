@@ -1,9 +1,3 @@
-// ==============================================================
-//  Rocket Defense Simulation — OpenGL визуализация
-//  Компиляция:
-//    g++ -std=c++17 main_opengl.cpp AtackRocket.cpp DefenderRocket.cpp
-//        map.cpp Parametrs.cpp -o sim_gl -lGL -lGLU -lglfw -lm
-// ==============================================================
 #include "AtackRocket.h"
 #include "DefenderRocket.h"
 #include "map.h"
@@ -33,8 +27,10 @@ static const float MAP_HEIGHT   = 5000.0f;
 static const int   NUM_CELLS    = 10;
 static const float CELL_SIZE    = 150.0f;
 static const int   NUM_ATTACKERS= NUM_CELLS;
-static const float START_Z      = 0.0f;
+static const float START_Z      = 0.0f;   // атакеры стартуют с земли
 static const float MIN_CELL_DIST= 300.0f;
+// Горизонтальная дистанция атакер->ячейка при которой стартует дефендер
+static const float DETECT_DIST = 1500.0f;
 
 // ==============================================================
 //  RandomGenerator
@@ -73,11 +69,11 @@ static int  g_winW = 1280, g_winH = 720;
 
 // Камера — орбита вокруг центра карты
 static float g_camAngleX  = 40.0f;   // вокруг Z
-static float g_camAngleY  = 35.0f;   // подъём
-static float g_camDist    = 9000.0f;
+static float g_camAngleY  = 25.0f;   // ИСПРАВЛЕНО: угол камеры для лучшего обзора 3D
+static float g_camDist    = 11000.0f; // ИСПРАВЛЕНО: дальше чтобы видеть высокие траектории
 static float g_camCX      = MAP_WIDTH/2;
 static float g_camCY      = MAP_HEIGHT/2;
-static float g_camCZ      = 0.0f;
+static float g_camCZ      = 1000.0f; // ИСПРАВЛЕНО: центр камеры поднят на 1000м
 static double g_mx=0,g_my=0;
 static bool   g_mouseDown = false;
 
@@ -369,7 +365,10 @@ static Map* createRandomMap(RandomGenerator& rng, float baseZ) {
         Corner* c3=new Corner(cx+h,cy+h,baseZ);
         Corner* c4=new Corner(cx-h,cy+h,baseZ);
         Parametrs* p=new Parametrs(0,0,0,0,0,4000,cx,cy,baseZ);
-        DefenderRocket* def=new DefenderRocket(10,  1000, 5000, nullptr, p, 800000.0f);
+        // ИСПРАВЛЕНО: новый конструктор (mass, fuel, cell, p, f)
+        // mass=500кг, fuel=300кг, f=150000Н → a_start=214м/с², топливо ~30с
+        // ИСПРАВЛЕНО: масса 200кг, топливо 500кг, тяга 200000Н → a=286м/с² — в 7х больше атакера
+        DefenderRocket* def=new DefenderRocket(200, 500, nullptr, p, 200000.f);
         std::vector<float> pv=p->getParametrs();
         pv[6]=cx; pv[7]=cy; pv[8]=baseZ;
         p->setParametrs(pv);
@@ -389,8 +388,10 @@ static AtackRocket* createAtacker(RandomGenerator& rng, Map* map, int nc,
         for (int i=0;i<nc;++i)
             if (isPointInCell(x,y,map->getCellNumber(i))){inside=true;break;}
     }
-    return new AtackRocket(100,1500,250, x,y,START_Z, tx,ty,tz,
-                           45.f,30,500,2.5,6000,0.05f,0.3f);
+    // Атакер стартует с земли (z=0), цель — центр ячейки на земле
+    // Парабола обеспечивается: тяга к цели + сильная начальная вертикальная скорость
+    // mass=100кг, fuel=500кг, rashod=3кг/с, f=25000Н
+    return new AtackRocket(100, x,y,START_Z, tx,ty,0.f, 0.f, 500, 3, 25000.f);
 }
 
 // ==============================================================
@@ -460,10 +461,10 @@ int main() {
         defTargets[i] = attackers[bestIdx];
     }
 
-    // Запуск
+    // Запускаем только атакеров — дефендеры стартуют по достижении порога высоты
     for (auto* a:attackers) a->launch();
-    for (int i=0;i<realCells;++i)
-        gameMap->getCellNumber(i)->getDefenderRocket()->launch(defTargets[i]);
+    // defenderLaunched[i] = true когда дефендер i уже запущен
+    std::vector<bool> defenderLaunched(realCells, false);
 
     // Трейлы
     g_atkTrails.resize(NUM_ATTACKERS);
@@ -491,11 +492,29 @@ int main() {
                 AtackRocket* a=attackers[id];
                 if (a->isActive()){
                     anyActive=true;
-                    // трейл
                     auto& tr=g_atkTrails[id];
                     tr.push_back({a->getX(),a->getY(),a->getZ()});
                     if ((int)tr.size()>TRAIL_LEN) tr.erase(tr.begin());
                     a->update(DT);
+                }
+            }
+
+            // Запускаем дефендер когда атакер подлетает на DETECT_DIST по горизонтали
+            for (int i=0;i<realCells;++i){
+                if (!defenderLaunched[i]) {
+                    AtackRocket* tgt = defTargets[i];
+                    if (tgt->isActive()) {
+                        // Горизонтальное расстояние атакер -> центр ячейки
+                        float ddx = tgt->getX() - cellPos[i].first;
+                        float ddy = tgt->getY() - cellPos[i].second;
+                        float hdist = std::sqrt(ddx*ddx + ddy*ddy);
+                        if (hdist <= DETECT_DIST) {
+                            gameMap->getCellNumber(i)->getDefenderRocket()->launch(tgt);
+                            defenderLaunched[i] = true;
+                        }
+                    } else {
+                        defenderLaunched[i] = true; // цель уже мертва
+                    }
                 }
             }
 
