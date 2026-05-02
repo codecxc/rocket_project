@@ -203,29 +203,52 @@ double AtackRocket::getDistanceToTarget() const {
 
 }
 
-void AtackRocket::calculateTrajectory() {
+// void AtackRocket::calculateTrajectory() {
+//     float dx=target_xyz[0]-xyz[0];
+//     float dy=target_xyz[1]-xyz[1];
+//     float dz=target_xyz[2]-xyz[2];
+//     float dist=std::sqrt(dx*dx+dy*dy+dz*dz);
+// 	float horiz=std::sqrt(dx*dx+dy*dy);
+//     if (horiz<1e-3f) {f_direction[0]=0.0f;f_direction[1]=0.0f;f_direction[2]=0.0f;return;}
+//     f_direction[0]=dx/dist;
+//     f_direction[1]=dy/dist;
+//     f_direction[2]=0.0f;
+// }
+
+
+
+
+// void AtackRocket::launch() {
+// 	is_active=true;
+// 	is_destroyed=false;
+// 	time_alive=0.0;
+// 	mass_fuel=mass_fuel0;
+// 	velocity[0]=0.0f;velocity[1]=0.0f;velocity[2]=200.0f;
+// 	calculateTrajectory();
+// }
+void AtackRocket::launch() {
+    const float G=9.81f;
+    is_active=true;is_destroyed=false;time_alive=0.0;
+    mass_fuel=mass_fuel0;
+
     float dx=target_xyz[0]-xyz[0];
     float dy=target_xyz[1]-xyz[1];
-    float dz=target_xyz[2]-xyz[2];
-    float dist=std::sqrt(dx*dx+dy*dy+dz*dz);
-	float horiz=std::sqrt(dx*dx+dy*dy);
-    if (horiz<1e-3f) {f_direction[0]=0.0f;f_direction[1]=0.0f;f_direction[2]=0.0f;return;}
-    f_direction[0]=dx/dist;
-    f_direction[1]=dy/dist;
-    f_direction[2]=0.0f;
+    float horiz_dist=std::sqrt(dx*dx+dy*dy);
+
+    float v0=std::sqrt(horiz_dist*G);
+
+    float v_horiz=v0*0.7071;
+    float v_vert =v0*0.7071;
+
+    if(horiz_dist>1e-3f) {
+        velocity[0]=(dx/horiz_dist)*v_horiz;
+        velocity[1]=(dy/horiz_dist)*v_horiz;
+    }
+    velocity[2]=v_vert;
+
+    cur_angle=45.f;
 }
-
-
-
-
-void AtackRocket::launch() {
-	is_active=true;
-	is_destroyed=false;
-	time_alive=0.0;
-	mass_fuel=mass_fuel0;
-	velocity[0]=0.0f;velocity[1]=0.0f;velocity[2]=200.0f;
-	calculateTrajectory();
-}
+void AtackRocket::calculateTrajectory() {}
 
 void AtackRocket::destroy() {
 	is_destroyed=true;
@@ -239,30 +262,48 @@ void AtackRocket::destroy() {
 // const float RHO_0=1.225f;
 // const float H=8500.0f;
 
+// void AtackRocket::update(float deltaTime) {
+//     if (!is_active or is_destroyed) return;
+//     const float G=9.81f;
+//     if(mass_fuel>0.0) {
+//         calculateTrajectory();
+//         float total_mass=mass+mass_fuel;
+//         float a=(float)(f/total_mass);
+//         velocity[0]+=f_direction[0]*a*deltaTime;
+//         velocity[1]+=f_direction[1]*a*deltaTime;
+//         // velocity[2]+=f_direction[2]*a*deltaTime;
+//         mass_fuel-=fuel_rashod*deltaTime;
+//         if(mass_fuel<0.0) mass_fuel=0.0;
+//     }
+//     velocity[2]-=G*deltaTime;
+
+//     xyz[0]+=velocity[0]*deltaTime;
+//     xyz[1]+=velocity[1]*deltaTime;
+//     xyz[2]+=velocity[2]*deltaTime;
+
+
+//     float horiz=std::sqrt(velocity[0]*velocity[0]+velocity[1]*velocity[1]);
+//     cur_angle=std::atan2(velocity[2], horiz)*180.f/M_PI;
+//     time_alive+=deltaTime;
+
+//     if(xyz[2]<=0.f) {xyz[2]=0.f;destroy();return;}
+//     if(getDistanceToTarget()<30.f) {destroy();return;}
+// }
+
 void AtackRocket::update(float deltaTime) {
-    if (!is_active or is_destroyed) return;
+    if(!is_active or is_destroyed) return;
     const float G=9.81f;
-    if(mass_fuel>0.0) {
-        calculateTrajectory();
-        float total_mass=mass+mass_fuel;
-        float a=(float)(f/total_mass);
-        velocity[0]+=f_direction[0]*a*deltaTime;
-        velocity[1]+=f_direction[1]*a*deltaTime;
-        // velocity[2]+=f_direction[2]*a*deltaTime;
-        mass_fuel-=fuel_rashod*deltaTime;
-        if(mass_fuel<0.0) mass_fuel=0.0;
-    }
     velocity[2]-=G*deltaTime;
 
     xyz[0]+=velocity[0]*deltaTime;
     xyz[1]+=velocity[1]*deltaTime;
     xyz[2]+=velocity[2]*deltaTime;
 
-
     float horiz=std::sqrt(velocity[0]*velocity[0]+velocity[1]*velocity[1]);
-    cur_angle=std::atan2(velocity[2], horiz)*180.f/M_PI;
+    cur_angle=std::atan2(velocity[2],horiz)*180.f/M_PI;
     time_alive+=deltaTime;
-
-    if(xyz[2]<=0.f) {xyz[2]=0.f;destroy();return;}
-    if(getDistanceToTarget()<30.f) {destroy();return;}
+    if(xyz[2]<=0.f) {
+        xyz[2]=0.f;
+        destroy();
+    }
 }

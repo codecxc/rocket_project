@@ -1,58 +1,102 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 import numpy as np
+import sys
 
-df = pd.read_csv('attackrockets.txt', sep=',', skipinitialspace=True)
+# ==============================================================
+# Загрузка данных
+# ==============================================================
+try:
+    df=pd.read_csv("trajectories.csv")
+except FileNotFoundError:
+    print("Файл trajectories.csv не найден — запусти симуляцию сначала")
+    sys.exit(1)
 
-attackers = df[df['type'] == 'attacker']
-defenders = df[df['type'] == 'defender']
+atk=df[df["type"]=="atk"]
+dfs=df[df["type"]=="def"]
+atk_ids=sorted(atk["id"].unique())
+def_ids=sorted(dfs["id"].unique())
 
-fig = plt.figure(figsize=(14, 6))
+# Цвета: атакер — оттенки красного, дефендер — оттенки синего
+def atk_color(i,n): return plt.cm.Reds(0.4+0.5*i/max(n-1,1))
+def def_color(i,n): return plt.cm.Blues(0.4+0.5*i/max(n-1,1))
 
-ax1 = fig.add_subplot(121, projection='3d')
+# ==============================================================
+# 1. Общий 3D график всех траекторий
+# ==============================================================
+fig=plt.figure(figsize=(18,10))
+gs=gridspec.GridSpec(2,3,figure=fig)
 
-for atk_id, grp in attackers.groupby('id'):
-    ax1.plot(grp['x'], grp['y'], grp['z'], 'b-', linewidth=0.8, alpha=0.7)
-    ax1.scatter(grp['x'].iloc[0], grp['y'].iloc[0], grp['z'].iloc[0], 
-                color='blue', s=30, marker='o')
-    ax1.scatter(grp['x'].iloc[-1], grp['y'].iloc[-1], grp['z'].iloc[-1], 
-                color='blue', s=30, marker='s')
+ax3d=fig.add_subplot(gs[:,0],projection="3d")
+for i,aid in enumerate(atk_ids):
+    g=atk[atk["id"]==aid]
+    ax3d.plot(g["x"],g["y"],g["z"],color=atk_color(i,len(atk_ids)),lw=1.2,alpha=0.8)
+    ax3d.scatter(g["x"].iloc[0],g["y"].iloc[0],g["z"].iloc[0],color=atk_color(i,len(atk_ids)),s=40,marker="o",zorder=5)
+    ax3d.scatter(g["x"].iloc[-1],g["y"].iloc[-1],g["z"].iloc[-1],color=atk_color(i,len(atk_ids)),s=40,marker="x",zorder=5)
+for i,did in enumerate(def_ids):
+    g=dfs[dfs["id"]==did]
+    ax3d.plot(g["x"],g["y"],g["z"],color=def_color(i,len(def_ids)),lw=1.2,alpha=0.8,linestyle="--")
+    ax3d.scatter(g["x"].iloc[0],g["y"].iloc[0],g["z"].iloc[0],color=def_color(i,len(def_ids)),s=40,marker="o",zorder=5)
 
-for def_id, grp in defenders.groupby('id'):
-    ax1.plot(grp['x'], grp['y'], grp['z'], 'r-', linewidth=0.8, alpha=0.7)
-    ax1.scatter(grp['x'].iloc[0], grp['y'].iloc[0], grp['z'].iloc[0], 
-                color='red', s=30, marker='o')
-    ax1.scatter(grp['x'].iloc[-1], grp['y'].iloc[-1], grp['z'].iloc[-1], 
-                color='red', s=30, marker='s')
+ax3d.set_xlabel("X, м"); ax3d.set_ylabel("Y, м"); ax3d.set_zlabel("Z, м")
+ax3d.set_title("Все траектории 3D")
+ax3d.plot([],[],color="tomato",lw=2,label="Атакер")
+ax3d.plot([],[],color="steelblue",lw=2,ls="--",label="Дефендер")
+ax3d.legend(fontsize=8)
 
-ax1.set_xlabel('X')
-ax1.set_ylabel('Y')
-ax1.set_zlabel('Z')
-ax1.set_title('3D Trajectories (all rockets)')
+# ==============================================================
+# 2. Вид сверху (XY) — все пары
+# ==============================================================
+ax_top=fig.add_subplot(gs[0,1])
+for i,aid in enumerate(atk_ids):
+    g=atk[atk["id"]==aid]
+    ax_top.plot(g["x"],g["y"],color=atk_color(i,len(atk_ids)),lw=1,alpha=0.8)
+for i,did in enumerate(def_ids):
+    g=dfs[dfs["id"]==did]
+    ax_top.plot(g["x"],g["y"],color=def_color(i,len(def_ids)),lw=1,alpha=0.8,ls="--")
+ax_top.set_xlabel("X, м"); ax_top.set_ylabel("Y, м")
+ax_top.set_title("Вид сверху")
+ax_top.set_aspect("equal"); ax_top.grid(True,alpha=0.3)
 
-ax2 = fig.add_subplot(122)
+# ==============================================================
+# 3. Высота от времени — все траектории
+# ==============================================================
+ax_z=fig.add_subplot(gs[1,1])
+for i,aid in enumerate(atk_ids):
+    g=atk[atk["id"]==aid]
+    ax_z.plot(g["t"],g["z"],color=atk_color(i,len(atk_ids)),lw=1,alpha=0.8)
+for i,did in enumerate(def_ids):
+    g=dfs[dfs["id"]==did]
+    ax_z.plot(g["t"],g["z"],color=def_color(i,len(def_ids)),lw=1,alpha=0.8,ls="--")
+ax_z.set_xlabel("Время, с"); ax_z.set_ylabel("Высота, м")
+ax_z.set_title("Высота от времени")
+ax_z.grid(True,alpha=0.3)
 
-if 0 in attackers['id'].values and 0 in defenders['id'].values:
-    atk0 = attackers[attackers['id'] == 0].set_index('time')
-    def0 = defenders[defenders['id'] == 0].set_index('time')
-    common_times = atk0.index.intersection(def0.index)
-    dist = np.sqrt((atk0.loc[common_times, 'x'].values - def0.loc[common_times, 'x'].values)**2 +
-                   (atk0.loc[common_times, 'y'].values - def0.loc[common_times, 'y'].values)**2 +
-                   (atk0.loc[common_times, 'z'].values - def0.loc[common_times, 'z'].values)**2)
-    ax2.plot(common_times, dist, 'g-', linewidth=2, marker='o', markersize=3)
-    ax2.set_title('Distance: Attacker 0 vs Defender 0')
-else:
-    times = sorted(df['time'].unique())
-    active_attackers = [len(attackers[(attackers['time'] == t) & (attackers['x'].notna())]) for t in times]
-    ax2.plot(times, active_attackers, 'b-', label='Active attackers')
-    active_defenders = [len(defenders[(defenders['time'] == t) & (defenders['x'].notna())]) for t in times]
-    ax2.plot(times, active_defenders, 'r-', label='Active defenders')
-    ax2.legend()
-    ax2.set_title('Active rocket counts')
+# ==============================================================
+# 4. Графики попарно: каждый атакер + его дефендер
+#    Дистанция между ними от времени
+# ==============================================================
+ax_dist=fig.add_subplot(gs[:,2])
+for i,(aid,did) in enumerate(zip(atk_ids,def_ids)):
+    ga=atk[atk["id"]==aid].set_index("t")
+    gd=dfs[dfs["id"]==did].set_index("t")
+    common=ga.index.intersection(gd.index)
+    if len(common)<2: continue
+    dist=np.sqrt(
+        (ga.loc[common,"x"].values-gd.loc[common,"x"].values)**2+
+        (ga.loc[common,"y"].values-gd.loc[common,"y"].values)**2+
+        (ga.loc[common,"z"].values-gd.loc[common,"z"].values)**2
+    )
+    ax_dist.plot(common,dist,lw=1.5,alpha=0.85,label=f"пара {i}")
 
-ax2.set_xlabel('Time')
-ax2.set_ylabel('Distance / Count')
-ax2.grid(True, alpha=0.3)
+ax_dist.axhline(y=150,color="red",ls=":",lw=1.5,label="радиус\nпоражения")
+ax_dist.set_xlabel("Время, с"); ax_dist.set_ylabel("Дистанция, м")
+ax_dist.set_title("Дистанция атакер↔дефендер\nпо парам")
+ax_dist.legend(fontsize=7,ncol=2); ax_dist.grid(True,alpha=0.3)
 
+plt.suptitle("Симуляция перехвата ракет",fontsize=14,y=1.01)
 plt.tight_layout()
+plt.savefig("trajectories.png",dpi=150,bbox_inches="tight")
 plt.show()
+print("График сохранён в trajectories.png")
