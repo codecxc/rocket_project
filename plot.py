@@ -4,9 +4,6 @@ import matplotlib.gridspec as gridspec
 import numpy as np
 import sys
 
-# ==============================================================
-# Загрузка данных
-# ==============================================================
 try:
     df=pd.read_csv("trajectories.csv")
 except FileNotFoundError:
@@ -18,13 +15,9 @@ dfs=df[df["type"]=="def"]
 atk_ids=sorted(atk["id"].unique())
 def_ids=sorted(dfs["id"].unique())
 
-# Цвета: атакер — оттенки красного, дефендер — оттенки синего
 def atk_color(i,n): return plt.cm.Reds(0.4+0.5*i/max(n-1,1))
 def def_color(i,n): return plt.cm.Blues(0.4+0.5*i/max(n-1,1))
 
-# ==============================================================
-# 1. Общий 3D график всех траекторий
-# ==============================================================
 fig=plt.figure(figsize=(18,10))
 gs=gridspec.GridSpec(2,3,figure=fig)
 
@@ -45,9 +38,6 @@ ax3d.plot([],[],color="tomato",lw=2,label="Атакер")
 ax3d.plot([],[],color="steelblue",lw=2,ls="--",label="Дефендер")
 ax3d.legend(fontsize=8)
 
-# ==============================================================
-# 2. Вид сверху (XY) — все пары
-# ==============================================================
 ax_top=fig.add_subplot(gs[0,1])
 for i,aid in enumerate(atk_ids):
     g=atk[atk["id"]==aid]
@@ -59,9 +49,6 @@ ax_top.set_xlabel("X, м"); ax_top.set_ylabel("Y, м")
 ax_top.set_title("Вид сверху")
 ax_top.set_aspect("equal"); ax_top.grid(True,alpha=0.3)
 
-# ==============================================================
-# 3. Высота от времени — все траектории
-# ==============================================================
 ax_z=fig.add_subplot(gs[1,1])
 for i,aid in enumerate(atk_ids):
     g=atk[atk["id"]==aid]
@@ -73,10 +60,6 @@ ax_z.set_xlabel("Время, с"); ax_z.set_ylabel("Высота, м")
 ax_z.set_title("Высота от времени")
 ax_z.grid(True,alpha=0.3)
 
-# ==============================================================
-# 4. Графики попарно: каждый атакер + его дефендер
-#    Дистанция между ними от времени
-# ==============================================================
 ax_dist=fig.add_subplot(gs[:,2])
 for i,(aid,did) in enumerate(zip(atk_ids,def_ids)):
     ga=atk[atk["id"]==aid].set_index("t")
@@ -97,6 +80,6 @@ ax_dist.legend(fontsize=7,ncol=2); ax_dist.grid(True,alpha=0.3)
 
 plt.suptitle("Симуляция перехвата ракет",fontsize=14,y=1.01)
 plt.tight_layout()
-plt.savefig("trajectories.png",dpi=150,bbox_inches="tight")
+
 plt.show()
 print("График сохранён в trajectories.png")

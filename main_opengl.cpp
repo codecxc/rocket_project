@@ -13,33 +13,22 @@
 #include <fstream>
 #include <algorithm>
 
-// ==============================================================
-// Параметры — меняй здесь
-// ==============================================================
-const float WORLD_W    =15000.f; // карта 15x15 км
+const float WORLD_W    =15000.f;
 const float WORLD_H    =15000.f;
 const int   N_CELLS    =10;
-const float CELL_SZ    =300.f;   // ячейки крупнее под масштаб
+const float CELL_SZ    =300.f;
 const int   N_ATK      =N_CELLS;
-const float MIN_DIST   =800.f;   // мин. расстояние между ячейками
-const float DETECT_DIST=3000.f;  // дистанция запуска дефендера
-const int   TRAIL_LEN  =200;     // длиннее трейл — масштабнее
-
-// Дефендер: mass=200, fuel=400, f=30000
-// a_start=50м/с², топливо на 33с, v_max≈1600м/с
+const float MIN_DIST   =800.f;
+const float DETECT_DIST=3000.f;
+const int   TRAIL_LEN  =200;
 const float DEF_MASS =200.f;
 const float DEF_FUEL =400.f;
 const float DEF_F    =30000.f;
+const float DT       =0.008f;
 
-// Шаг симуляции — меньше = медленнее
-const float DT       =0.008f; // ~120 физ.шагов/с вместо 60
-
-// ==============================================================
-// Структуры
-// ==============================================================
 struct Cam{
     float ax=35.f,ay=28.f;
-    float dist=22000.f;          // отдалённее под большую карту
+    float dist=22000.f;
     float cx=WORLD_W/2,cy=WORLD_H/2,cz=2000.f;
     double mx=0,my=0;
     bool down=false;
@@ -49,9 +38,6 @@ struct Col3{float r,g,b;};
 struct Pt3 {float x,y,z;};
 struct Boom{float x,y,z,life,maxLife;Col3 col;};
 
-// ==============================================================
-// Глобальные переменные
-// ==============================================================
 GLFWwindow* win=nullptr;
 int winW=1280,winH=720;
 Cam cam;
@@ -61,13 +47,9 @@ std::vector<Boom> booms;
 int nHit=0;
 bool done=false;
 
-// Данные для записи в файл (для питона)
 struct LogPt{float t,x,y,z;int id;bool isAtk;};
 std::vector<LogPt> log_data;
 
-// ==============================================================
-// RNG
-// ==============================================================
 struct RNG{
     std::mt19937 g;
     RNG():g(static_cast<unsigned int>(time(nullptr))){}
@@ -75,9 +57,6 @@ struct RNG{
     int   i(int a,int b)    {return std::uniform_int_distribution<int>(a,b)(g);}
 };
 
-// ==============================================================
-// GLFW коллбэки
-// ==============================================================
 void onBtn(GLFWwindow*,int btn,int act,int){
     if(btn==GLFW_MOUSE_BUTTON_LEFT)cam.down=(act==GLFW_PRESS);
 }
@@ -90,19 +69,16 @@ void onMove(GLFWwindow*,double x,double y){
     cam.mx=x;cam.my=y;
 }
 void onScroll(GLFWwindow*,double,double dy){
-    cam.dist-=(float)dy*500.f;  // шаг зума больше под масштаб
+    cam.dist-=(float)dy*500.f;
     cam.dist=std::max(1000.f,std::min(50000.f,cam.dist));
 }
 void onKey(GLFWwindow* w,int k,int,int act,int){
     if(k==GLFW_KEY_ESCAPE&&act==GLFW_PRESS)glfwSetWindowShouldClose(w,1);
 }
 
-// ==============================================================
-// Рисование
-// ==============================================================
 void setCamera(){
     glMatrixMode(GL_PROJECTION);glLoadIdentity();
-    gluPerspective(45.0,(double)winW/winH,10.0,150000.0); // дальняя плоскость отсечения
+    gluPerspective(45.0,(double)winW/winH,10.0,150000.0);
     glMatrixMode(GL_MODELVIEW);glLoadIdentity();
     float rx=cam.ax*(float)M_PI/180.f,ry=cam.ay*(float)M_PI/180.f;
     float ex=cam.cx+cam.dist*cosf(ry)*cosf(rx);
@@ -147,7 +123,7 @@ void drawRocket(float x,float y,float z,Col3 c,float sc=1.f){
     glPushMatrix();glTranslatef(x,y,z);
     glPointSize(12.f*sc);glColor3f(c.r*1.5f,c.g*1.5f,c.b*1.5f);
     glBegin(GL_POINTS);glVertex3f(0,0,0);glEnd();
-    float r0=15.f*sc,h0=50.f*sc; // крупнее под масштаб
+    float r0=15.f*sc,h0=50.f*sc;
     glColor3f(c.r,c.g,c.b);
     glBegin(GL_TRIANGLE_FAN);glVertex3f(0,0,h0);
     for(int i=0;i<=8;++i){float a=i*(2.f*(float)M_PI/8);glVertex3f(r0*cosf(a),r0*sinf(a),0);}
@@ -171,7 +147,7 @@ void drawTrail(const std::vector<Pt3>& t,Col3 c){
 }
 
 void drawBoom(const Boom& b){
-    float t=1.f-b.life/b.maxLife,r=500.f*t,a=b.life/b.maxLife; // крупнее взрыв
+    float t=1.f-b.life/b.maxLife,r=500.f*t,a=b.life/b.maxLife;
     glPointSize(5.f);
     glBegin(GL_POINTS);
     for(int i=0;i<50;++i){
@@ -237,9 +213,6 @@ void drawHUD(int hit,int total,bool simDone){
     glMatrixMode(GL_MODELVIEW);glPopMatrix();
 }
 
-// ==============================================================
-// Создание карты и ракет
-// ==============================================================
 bool inCell(float x,float y,Cell* cell){
     auto c=cell->getCorners();
     return x>=c[0]->getX()&&x<=c[2]->getX()&&y>=c[0]->getY()&&y<=c[2]->getY();
@@ -276,13 +249,9 @@ AtackRocket* makeAtk(RNG& rng,Map* map,int nc,float tx,float ty){
         x=rng.f(0,WORLD_W);y=rng.f(0,WORLD_H);inside=false;
         for(int i=0;i<nc;++i)if(inCell(x,y,map->getCellNumber(i))){inside=true;break;}
     }
-    // масса=100, топлива/тяга уже не используются в баллистической модели
     return new AtackRocket(100,x,y,0.f,tx,ty,0.f,0.f,0,0,0);
 }
 
-// ==============================================================
-// main
-// ==============================================================
 int main(){
     if(!glfwInit()){std::cerr<<"GLFW fail\n";return -1;}
     glfwWindowHint(GLFW_SAMPLES,4);
@@ -317,7 +286,6 @@ int main(){
         atk.push_back(makeAtk(rng,gmap,nCells,cellC[t].x,cellC[t].y));
     }
 
-    // каждому дефендеру — ближайший атакер
     std::vector<AtackRocket*> defTgt(nCells);
     for(int i=0;i<nCells;++i){
         float best=1e18f;int bi=0;
@@ -335,9 +303,8 @@ int main(){
     atkTrail.resize(N_ATK);
     defTrail.resize(nCells);
 
-    const float MAX_T=600.f; // больше времени под большую карту
+    const float MAX_T=600.f;
     float simT=0.f;
-    // логируем каждые LOG_STEP физ.шагов чтобы не раздувать файл
     const int LOG_STEP=5;
     int stepN=0;
 
@@ -351,7 +318,6 @@ int main(){
         if(!done&&simT<MAX_T){
             bool alive=false;
 
-            // атакеры
             for(int i=0;i<N_ATK;++i){
                 AtackRocket* a=atk[i];
                 if(!a->isActive())continue;
@@ -359,13 +325,11 @@ int main(){
                 auto& tr=atkTrail[i];
                 tr.push_back({a->getX(),a->getY(),a->getZ()});
                 if((int)tr.size()>TRAIL_LEN)tr.erase(tr.begin());
-                // логируем для графиков
                 if(stepN%LOG_STEP==0)
                     log_data.push_back({simT,a->getX(),a->getY(),a->getZ(),i,true});
                 a->update(DT);
             }
 
-            // запуск дефендеров по дистанции
             for(int i=0;i<nCells;++i){
                 if(defReady[i])continue;
                 AtackRocket* tgt=defTgt[i];
@@ -377,7 +341,6 @@ int main(){
                 }
             }
 
-            // дефендеры
             for(int i=0;i<nCells;++i){
                 DefenderRocket* d=gmap->getCellNumber(i)->getDefenderRocket();
                 if(!d->isActive())continue;
@@ -402,7 +365,6 @@ int main(){
             ++stepN;
             if(!alive){
                 done=true;
-                // записываем лог в файл для питона
                 std::ofstream f("trajectories.csv");
                 f<<"t,x,y,z,id,type\n";
                 for(auto& p:log_data)
@@ -412,7 +374,6 @@ int main(){
             }
         }
 
-        // рендер
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
         setCamera();
         drawGround();

@@ -9,17 +9,11 @@
 #include <iostream>
 #include <algorithm>
 
-// ==============================================================
-// Параметры
-// ==============================================================
 const float WORLD_W=5000.0f;
 const float WORLD_H=5000.0f;
-const int   N_ATK=10;       // количество атакеров
-const int   TRAIL_LEN=120;
+const int N_ATK=10;
+const int TRAIL_LEN=120;
 
-// ==============================================================
-// Общие типы (те же что в main_opengl.cpp)
-// ==============================================================
 struct Cam{
     float ax=40.f,ay=25.f;
     float dist=11000.f;
@@ -44,17 +38,11 @@ int winW=1280,winH=720;
 Cam cam;
 
 std::vector<std::vector<Pt3>> atkTrail;
-std::vector<Boom> booms; // взрывы при падении
+std::vector<Boom> booms;
 bool done=false;
 
-// ==============================================================
-// Цели — просто точки на земле, рисуем как маркеры
-// ==============================================================
 struct Target{float x,y;};
 
-// ==============================================================
-// GLFW коллбэки (идентичны main_opengl.cpp)
-// ==============================================================
 void onBtn(GLFWwindow*,int btn,int act,int){
     if(btn==GLFW_MOUSE_BUTTON_LEFT)cam.down=(act==GLFW_PRESS);
 }
@@ -74,9 +62,6 @@ void onKey(GLFWwindow* w,int k,int,int act,int){
     if(k==GLFW_KEY_ESCAPE&&act==GLFW_PRESS)glfwSetWindowShouldClose(w,1);
 }
 
-// ==============================================================
-// Рисование (идентично main_opengl.cpp)
-// ==============================================================
 void setCamera(){
     glMatrixMode(GL_PROJECTION);glLoadIdentity();
     gluPerspective(45.0,(double)winW/winH,10.0,60000.0);
@@ -104,7 +89,6 @@ void drawGround(){
     glEnd();
 }
 
-// Крест-маркер цели на земле
 void drawTarget(float x,float y){
     const float SZ=80.f;
     glLineWidth(2.f);glColor3f(1.f,0.2f,0.2f);
@@ -112,7 +96,6 @@ void drawTarget(float x,float y){
     glVertex3f(x-SZ,y,3.f);glVertex3f(x+SZ,y,3.f);
     glVertex3f(x,y-SZ,3.f);glVertex3f(x,y+SZ,3.f);
     glEnd();
-    // окружность
     glBegin(GL_LINE_LOOP);
     for(int i=0;i<32;++i){
         float a=(float)i/32*2*(float)M_PI;
@@ -173,22 +156,20 @@ void drawHUD(int total,bool simDone){
     glOrtho(0,winW,0,winH,-1,1);
     glMatrixMode(GL_MODELVIEW);glPushMatrix();glLoadIdentity();
     glDisable(GL_DEPTH_TEST);
-    // фон
     glColor4f(0,0.05f,0,0.75f);
     glBegin(GL_QUADS);
     glVertex2f(10,winH-10);glVertex2f(280,winH-10);
     glVertex2f(280,winH-60);glVertex2f(10,winH-60);
     glEnd();
-    glColor4f(0.9f,0.3f,0.1f,0.9f);glLineWidth(1.5f); // оранжевая рамка — только атакеры
+    glColor4f(0.9f,0.3f,0.1f,0.9f);glLineWidth(1.5f);
     glBegin(GL_LINE_LOOP);
     glVertex2f(10,winH-10);glVertex2f(280,winH-10);
     glVertex2f(280,winH-60);glVertex2f(10,winH-60);
     glEnd();
-    // квадратики — один на атакера
     float sq=18.f,gap=4.f,sy=winH-40.f;
     for(int i=0;i<total;++i){
         float x0=20.f+i*(sq+gap);
-        glColor4f(0.9f,0.25f,0.1f,1.f); // всегда оранжевые — нет дефендеров
+        glColor4f(0.9f,0.25f,0.1f,1.f);
         glBegin(GL_QUADS);
         glVertex2f(x0,sy);glVertex2f(x0+sq,sy);
         glVertex2f(x0+sq,sy+sq);glVertex2f(x0,sy+sq);
@@ -206,9 +187,6 @@ void drawHUD(int total,bool simDone){
     glMatrixMode(GL_MODELVIEW);glPopMatrix();
 }
 
-// ==============================================================
-// main
-// ==============================================================
 int main(){
     if(!glfwInit()){std::cerr<<"GLFW fail\n";return -1;}
     glfwWindowHint(GLFW_SAMPLES,4);
@@ -228,14 +206,12 @@ int main(){
 
     RNG rng;
 
-    // случайные цели на земле
     std::vector<Target> targets(N_ATK);
     for(auto& t:targets){
         t.x=rng.f(300.f,WORLD_W-300.f);
         t.y=rng.f(300.f,WORLD_H-300.f);
     }
 
-    // атакеры стартуют из случайных точек, не совпадающих с целью
     std::vector<AtackRocket*> atk;
     for(int i=0;i<N_ATK;++i){
         float sx,sy;
@@ -268,7 +244,6 @@ int main(){
                 if((int)tr.size()>TRAIL_LEN)tr.erase(tr.begin());
                 bool wasActive=a->isActive();
                 a->update(DT);
-                // взрыв когда ракета упала/достигла цели
                 if(wasActive&&!a->isActive()){
                     booms.push_back({a->getX(),a->getY(),a->getZ(),1.5f,1.5f,cExp});
                 }
@@ -284,9 +259,7 @@ int main(){
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
         setCamera();
         drawGround();
-        // цели
         for(auto& t:targets)drawTarget(t.x,t.y);
-        // атакеры и их трейлы
         for(int i=0;i<N_ATK;++i){
             drawTrail(atkTrail[i],cAtk);
             if(atk[i]->isActive())drawRocket(atk[i]->getX(),atk[i]->getY(),atk[i]->getZ(),cAtk,1.4f);
