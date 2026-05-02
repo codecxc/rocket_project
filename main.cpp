@@ -251,9 +251,6 @@ int main() {
     int intercepted = 0;
     for (auto* atk : attackers) if (atk->isDestroyed()) ++intercepted;
 
-    std::cout << "\n=== Итог ===\n";
-    std::cout << "Сбито:            " << intercepted << " / " << NUM_ATTACKERS << "\n";
-    std::cout << "Время симуляции:  " << time << " с\n";
 
     for (auto* atk : attackers) delete atk;
     delete Map;
