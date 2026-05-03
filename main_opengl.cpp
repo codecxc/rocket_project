@@ -19,7 +19,7 @@ const float DT=0.02f;
 const float GAP=800.f;
 const float DET=3000.f;
 const float DM=100.f;
-const float DF=300.f;
+const float DF=1000.f;
 const float DT2=80000.f;
 
 float rnd(float a,float b){return a+(b-a)*(float)rand()/RAND_MAX;}
