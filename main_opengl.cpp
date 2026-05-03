@@ -42,6 +42,7 @@ void onScroll(GLFWwindow*,double,double d) {
     if(camD<2000)camD=2000;
     if(camD>50000)camD=50000;
 }
+// esc
 void onKey(GLFWwindow* w,int k,int,int a,int){
     if(k==GLFW_KEY_ESCAPE&&a==1)glfwSetWindowShouldClose(w,1);
 }
@@ -58,15 +59,17 @@ void setCamera(){
     gluLookAt(ex,ey,ez,W/2,H/2,1000.f,0,0,1);
 }
 
+// след ракеты
 struct Pt{float x,y,z;};
 std::vector<Pt> atr[10],dtr[10];
 
+// добавить точку в буффер следа
 void addPt(std::vector<Pt>& t,float x,float y,float z){
     Pt p;p.x=x;p.y=y;p.z=z;
     t.push_back(p);
     if((int)t.size()>150)t.erase(t.begin());
 }
-
+// рисование следа
 void drawTrail(std::vector<Pt>& t,float r,float g,float b){
     if(t.size()<2)return;
     glBegin(GL_LINE_STRIP);
@@ -162,13 +165,13 @@ int main(){
     Map* gmap=makeMap();
     int nc=0;
     while(nc<NC&&gmap->getCellNumber(nc))nc++;
-
+	// центры ячеек
     float cx[10],cy[10],cz[10];
     for(int i=0;i<nc;i++){
         Corner* c=gmap->getCellNumber(i)->getCenter();
         cx[i]=c->getX();cy[i]=c->getY();cz[i]=c->getZ();delete c;
     }
-
+	// создаем атакующие
     AtackRocket* atk[10];
     for(int i=0;i<NC;i++){
         int t=rndI(0,nc-1);
@@ -179,7 +182,7 @@ int main(){
         }
         atk[i]=new AtackRocket(100,x,y,0,cx[t],cy[t],0,0,0,0,0);
     }
-
+	// привязка дефендеров
     AtackRocket* tgt[10];
     for(int i=0;i<nc;i++){
         float best=1e18f;int bi=0;
@@ -205,7 +208,7 @@ int main(){
 
         if(!done&&simT<600){
             bool alive=false;
-
+		// обновление атакера
             for(int i=0;i<NC;i++){
                 if(!atk[i]->isActive())continue;
                 alive=true;
@@ -218,7 +221,7 @@ int main(){
                 }
                 atk[i]->update(DT);
             }
-
+		// надо ли пускать дефендера
             for(int i=0;i<nc;i++){
                 if(defGo[i])continue;
                 if(!tgt[i]->isActive()){defGo[i]=true;continue;}
@@ -228,7 +231,7 @@ int main(){
                     defGo[i]=true;
                 }
             }
-
+		// запуск дефендера
             for(int i=0;i<nc;i++){
                 DefenderRocket* d=gmap->getCellNumber(i)->getDefenderRocket();
                 if(!d->isActive())continue;
